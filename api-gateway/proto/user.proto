@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package user;
+
+service UserService {
+  rpc GetUser (GetUserRequest) returns (UserResponse);
+  rpc UpdateUser (UpdateUserRequest) returns (UserResponse);
+  rpc GetUserProfile (GetUserRequest) returns (UserProfileResponse);
+}
+
+message GetUserRequest {
+  string userId = 1;
+}
+
+message UpdateUserRequest {
+  string userId = 1;
+  string name = 2;
+  string phone = 3;
+}
+
+message UserResponse {
+  bool success = 1;
+  string message = 2;
+  User user = 3;
+}
+
+message User {
+  string id = 1;
+  string email = 2;
+  string name = 3;
+  string phone = 4;
+}
+
+message UserProfileResponse {
+  bool success = 1;
+  User user = 2;
+  int32 todoCount = 3;
+}
