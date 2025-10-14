@@ -1,0 +1,136 @@
+version: '3.8'
+
+services:
+  # ------ AUTH SERVICE & DATABASE ------
+  auth-service:
+    build: ./auth-service
+    container_name: todo-auth-service
+    restart: unless-stopped
+    env_file:
+      - ./auth-service/.env
+    depends_on:
+      auth-db:
+        condition: service_healthy # Chờ database khỏe mạnh
+      rabbitmq:
+        condition: service_healthy # Chờ RabbitMQ khỏe mạnh
+    networks:
+      - todo-network
+
+  auth-db:
+    image: mongo:latest
+    container_name: todo-auth-db
+    restart: unless-stopped
+    volumes:
+      - mongodb_auth_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - todo-network
+
+  # ------ USER SERVICE & DATABASE ------
+  user-service:
+    build: ./user-service
+    container_name: todo-user-service
+    restart: unless-stopped
+    env_file:
+      - ./user-service/.env
+    depends_on:
+      user-db:
+        condition: service_healthy # Chờ database khỏe mạnh
+      rabbitmq:
+        condition: service_healthy # Chờ RabbitMQ khỏe mạnh
+    networks:
+      - todo-network
+
+  user-db:
+    image: mongo:latest
+    container_name: todo-user-db
+    restart: unless-stopped
+    volumes:
+      - mongodb_user_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - todo-network
+
+  # ------ TODO SERVICE & DATABASE ------
+  todo-service:
+    build: ./todo-service
+    container_name: todo-todo-service
+    restart: unless-stopped
+    env_file:
+      - ./todo-service/.env
+    depends_on:
+      todo-db:
+        condition: service_healthy # Chờ database khỏe mạnh
+      rabbitmq:
+        condition: service_healthy # Chờ RabbitMQ khỏe mạnh
+    networks:
+      - todo-network
+
+  todo-db:
+    image: mongo:latest
+    container_name: todo-todo-db
+    restart: unless-stopped
+    volumes:
+      - mongodb_todo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - todo-network
+
+  # ------ CÁC SERVICE CHUNG (Hạ tầng) ------
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: todo-rabbitmq
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - todo-network
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: todo-api-gateway
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      AUTH_SERVICE_URL: auth-service:50051
+      USER_SERVICE_URL: user-service:50052
+      TODO_SERVICE_URL: todo-service:50053
+    depends_on:
+      - auth-service
+      - user-service
+      - todo-service
+    networks:
+      - todo-network
+
+volumes:
+  mongodb_auth_data:
+  mongodb_user_data:
+  mongodb_todo_data:
+
+networks:
+  todo-network:
+    driver: bridge

@@ -1,23 +1,42 @@
-const users = new Map();
+const mongoose = require('mongoose');
+const User = require('../models/User');
+
+let isConnected = false;
+
+const connectDB = async () => {
+    if (isConnected) {
+        return;
+    }
+
+    try {
+        const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/todo-microservices';
+        await mongoose.connect(mongoURI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        });
+
+        isConnected = true;
+        console.log('User Service: MongoDB connected successfully');
+    } catch (error) {
+        console.error('User Service: MongoDB connection error:', error);
+        process.exit(1);
+    }
+};
 
 module.exports = {
-    users,
+    connectDB,
+    User,
 
-    findUserById: (id) => {
-        return users.get(id);
+    findUserById: async (id) => {
+        return await User.findOne({ id });
     },
 
-    createUser: (user) => {
-        users.set(user.id, user);
-        return user;
+    createUser: async (userData) => {
+        const user = new User(userData);
+        return await user.save();
     },
 
-    updateUser: (id, data) => {
-        const user = users.get(id);
-        if (!user) return null;
-
-        const updated = { ...user, ...data };
-        users.set(id, updated);
-        return updated;
+    updateUser: async (id, data) => {
+        return await User.findOneAndUpdate({ id }, data, { new: true });
     }
 };

@@ -1,13 +1,13 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
-const db = require('../config/database');
+const database = require('../config/database');
 const { publishEvent } = require('../utils/rabbitmq');
 
 class AuthService {
     async register(email, password, name) {
         // Check if user exists
-        const existingUser = db.findUserByEmail(email);
+        const existingUser = database.findUserByEmail(email);
         if (existingUser) {
             return {
                 success: false,
@@ -30,7 +30,7 @@ class AuthService {
             createdAt: new Date()
         };
 
-        db.createUser(user);
+        await database.createUser(user);
 
         // Generate token
         const token = jwt.sign(
@@ -56,7 +56,7 @@ class AuthService {
     }
 
     async login(email, password) {
-        const user = db.findUserByEmail(email);
+        const user = database.findUserByEmail(email);
 
         if (!user) {
             return {
