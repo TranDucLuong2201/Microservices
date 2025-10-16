@@ -1,17 +1,51 @@
 version: '3.8'
 
 services:
-  mongodb:
+  # Auth Service Database
+  mongodb-auth:
     image: mongo:7.0
-    container_name: microservices-mongodb
+    container_name: microservices-mongodb-auth
     restart: unless-stopped
     ports:
       - "27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: auth-service
     volumes:
-      - mongodb_data:/data/db
+      - mongodb_auth_data:/data/db
+    networks:
+      - microservices-network
+
+  # User Service Database
+  mongodb-user:
+    image: mongo:7.0
+    container_name: microservices-mongodb-user
+    restart: unless-stopped
+    ports:
+      - "27018:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: user-service
+    volumes:
+      - mongodb_user_data:/data/db
+    networks:
+      - microservices-network
+
+  # Todo Service Database
+  mongodb-todo:
+    image: mongo:7.0
+    container_name: microservices-mongodb-todo
+    restart: unless-stopped
+    ports:
+      - "27019:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: todo-service
+    volumes:
+      - mongodb_todo_data:/data/db
     networks:
       - microservices-network
 
@@ -39,10 +73,10 @@ services:
     environment:
       GRPC_PORT: 50051
       JWT_SECRET: your-super-secret-jwt-key-for-development
-      MONGODB_URI: mongodb://admin:password@mongodb:27017/auth-service?authSource=admin
+      MONGODB_URI: mongodb://admin:password@mongodb-auth:27017/auth-service?authSource=admin
       RABBITMQ_URL: amqp://admin:password@rabbitmq:5672
     depends_on:
-      - mongodb
+      - mongodb-auth
       - rabbitmq
     networks:
       - microservices-network
@@ -55,10 +89,10 @@ services:
       - "50052:50052"
     environment:
       GRPC_PORT: 50052
-      MONGODB_URI: mongodb://admin:password@mongodb:27017/user-service?authSource=admin
+      MONGODB_URI: mongodb://admin:password@mongodb-user:27017/user-service?authSource=admin
       RABBITMQ_URL: amqp://admin:password@rabbitmq:5672
     depends_on:
-      - mongodb
+      - mongodb-user
       - rabbitmq
     networks:
       - microservices-network
@@ -71,10 +105,10 @@ services:
       - "50053:50053"
     environment:
       GRPC_PORT: 50053
-      MONGODB_URI: mongodb://admin:password@mongodb:27017/todo-service?authSource=admin
+      MONGODB_URI: mongodb://admin:password@mongodb-todo:27017/todo-service?authSource=admin
       RABBITMQ_URL: amqp://admin:password@rabbitmq:5672
     depends_on:
-      - mongodb
+      - mongodb-todo
       - rabbitmq
     networks:
       - microservices-network
@@ -111,7 +145,9 @@ services:
       - microservices-network
 
 volumes:
-  mongodb_data:
+  mongodb_auth_data:
+  mongodb_user_data:
+  mongodb_todo_data:
   rabbitmq_data:
 
 networks:
