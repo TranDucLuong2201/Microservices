@@ -37,17 +37,17 @@ const todoProto = grpc.loadPackageDefinition(todoPackageDef).todo;
 
 // Create gRPC clients
 const authClient = new authProto.AuthService(
-    process.env.AUTH_GRPC_URL,
+    process.env.AUTH_SERVICE_URL || 'localhost:50051',
     grpc.credentials.createInsecure()
 );
 
 const userClient = new userProto.UserService(
-    process.env.USER_GRPC_URL,
+    process.env.USER_SERVICE_URL || 'localhost:50052',
     grpc.credentials.createInsecure()
 );
 
 const todoClient = new todoProto.TodoService(
-    process.env.TODO_GRPC_URL,
+    process.env.TODO_SERVICE_URL || 'localhost:50053',
     grpc.credentials.createInsecure()
 );
 

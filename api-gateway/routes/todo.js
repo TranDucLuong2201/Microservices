@@ -6,24 +6,29 @@ const router = express.Router();
 
 // Create todo
 router.post('/', authenticateToken, (req, res) => {
-    const { title, description } = req.body;
+    const { title, description, priority, dueDate, tags, category } = req.body;
 
     if (!title) {
-        return res.status(400).json({ error: 'Title is required' });
+        return res.status(400).json({ success: false, message: 'Title is required' });
     }
 
     todoClient.CreateTodo(
         {
             userId: req.user.userId,
             title,
-            description: description || ''
+            description: description || '',
+            priority: priority || 'medium',
+            dueDate: dueDate || null,
+            tags: tags || [],
+            category: category || 'general'
         },
         (error, response) => {
             if (error) {
-                return res.status(500).json({ error: 'Failed to create todo' });
+                return res.status(500).json({ success: false, message: 'Failed to create todo' });
             }
 
             res.status(201).json({
+                success: true,
                 message: response.message,
                 todo: response.todo
             });
@@ -35,11 +40,12 @@ router.post('/', authenticateToken, (req, res) => {
 router.get('/', authenticateToken, (req, res) => {
     todoClient.GetTodos({ userId: req.user.userId }, (error, response) => {
         if (error) {
-            return res.status(500).json({ error: 'Failed to get todos' });
+            return res.status(500).json({ success: false, message: 'Failed to get todos' });
         }
 
         res.json({
-            todos: response.todos
+            success: true,
+            todos: response.todos || []
         });
     });
 });
@@ -69,10 +75,10 @@ router.get('/:id', authenticateToken, (req, res) => {
 
 // Update todo
 router.put('/:id', authenticateToken, (req, res) => {
-    const { title, description } = req.body;
+    const { title, description, priority, dueDate, tags, category } = req.body;
 
     if (!title) {
-        return res.status(400).json({ error: 'Title is required' });
+        return res.status(400).json({ success: false, message: 'Title is required' });
     }
 
     todoClient.UpdateTodo(
@@ -80,18 +86,23 @@ router.put('/:id', authenticateToken, (req, res) => {
             todoId: req.params.id,
             userId: req.user.userId,
             title,
-            description: description || ''
+            description: description || '',
+            priority: priority || 'medium',
+            dueDate: dueDate || null,
+            tags: tags || [],
+            category: category || 'general'
         },
         (error, response) => {
             if (error) {
-                return res.status(500).json({ error: 'Failed to update todo' });
+                return res.status(500).json({ success: false, message: 'Failed to update todo' });
             }
 
             if (!response.success) {
-                return res.status(404).json({ error: response.message });
+                return res.status(404).json({ success: false, message: response.message });
             }
 
             res.json({
+                success: true,
                 message: response.message,
                 todo: response.todo
             });
@@ -108,14 +119,15 @@ router.patch('/:id/toggle', authenticateToken, (req, res) => {
         },
         (error, response) => {
             if (error) {
-                return res.status(500).json({ error: 'Failed to toggle todo' });
+                return res.status(500).json({ success: false, message: 'Failed to toggle todo' });
             }
 
             if (!response.success) {
-                return res.status(404).json({ error: response.message });
+                return res.status(404).json({ success: false, message: response.message });
             }
 
             res.json({
+                success: true,
                 message: response.message,
                 todo: response.todo
             });
@@ -132,14 +144,15 @@ router.delete('/:id', authenticateToken, (req, res) => {
         },
         (error, response) => {
             if (error) {
-                return res.status(500).json({ error: 'Failed to delete todo' });
+                return res.status(500).json({ success: false, message: 'Failed to delete todo' });
             }
 
             if (!response.success) {
-                return res.status(404).json({ error: response.message });
+                return res.status(404).json({ success: false, message: response.message });
             }
 
             res.json({
+                success: true,
                 message: response.message
             });
         }

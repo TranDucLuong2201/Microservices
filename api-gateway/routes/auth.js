@@ -21,6 +21,7 @@ router.post('/register', (req, res) => {
         }
 
         res.status(201).json({
+            success: true,
             message: response.message,
             token: response.token,
             userId: response.userId
@@ -46,9 +47,31 @@ router.post('/login', (req, res) => {
         }
 
         res.json({
+            success: true,
             message: response.message,
             token: response.token,
             userId: response.userId
+        });
+    });
+});
+
+// Verify Token
+router.post('/verify-token', (req, res) => {
+    const { token } = req.body;
+
+    if (!token) {
+        return res.status(400).json({ valid: false, error: 'Token is required' });
+    }
+
+    authClient.VerifyToken({ token }, (error, response) => {
+        if (error) {
+            return res.status(500).json({ valid: false, error: 'Token verification failed' });
+        }
+
+        res.json({
+            valid: response.valid,
+            userId: response.userId,
+            email: response.email
         });
     });
 });

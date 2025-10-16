@@ -15,6 +15,10 @@ message CreateTodoRequest {
     string userId = 1;
     string title = 2;
     string description = 3;
+    string priority = 4;
+    string dueDate = 5;
+    repeated string tags = 6;
+    string category = 7;
 }
 
 message GetTodosRequest {
@@ -31,6 +35,10 @@ message UpdateTodoRequest {
     string userId = 2;
     string title = 3;
     string description = 4;
+    string priority = 5;
+    string dueDate = 6;
+    repeated string tags = 7;
+    string category = 8;
 }
 
 message DeleteTodoRequest {
@@ -49,7 +57,12 @@ message Todo {
     string title = 3;
     string description = 4;
     bool completed = 5;
-    string createdAt = 6;
+    string priority = 6;
+    string dueDate = 7;
+    repeated string tags = 8;
+    string category = 9;
+    string createdAt = 10;
+    string updatedAt = 11;
 }
 
 message TodoResponse {

@@ -1,12 +1,14 @@
 require('dotenv').config();
+const connectDB = require('./config/database');
 const { startGrpcServer } = require('./grpc/authServer');
 const { connectRabbitMQ } = require('./utils/rabbitmq');
-const { connectDatabase } = require('./config/database');
 
 async function main() {
     console.log('🚀 Starting Auth Service...');
+
     // Connect to MongoDB
-    await connectDatabase();
+    await connectDB();
+
     // Connect to RabbitMQ
     await connectRabbitMQ();
 

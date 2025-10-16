@@ -8,21 +8,22 @@ const PROTO_PATH = path.join(__dirname, '../proto/user.proto');
 const packageDefinition = protoLoader.loadSync(PROTO_PATH);
 const userProto = grpc.loadPackageDefinition(packageDefinition).user;
 
-function GetUser(call, callback) {
+async function GetUser(call, callback) {
     const { userId } = call.request;
-    const result = userService.getUser(userId);
+    const result = await userService.getUser(userId);
     callback(null, result);
 }
 
-function UpdateUser(call, callback) {
-    const { userId, name, phone } = call.request;
-    const result = userService.updateUser(userId, name, phone);
+async function UpdateUser(call, callback) {
+    const { userId, name, bio, preferences } = call.request;
+    const updateData = { name, bio, preferences };
+    const result = await userService.updateUser(userId, updateData);
     callback(null, result);
 }
 
-function GetUserProfile(call, callback) {
+async function GetUserProfile(call, callback) {
     const { userId } = call.request;
-    const result = userService.getUserProfile(userId);
+    const result = await userService.getUserProfile(userId);
     callback(null, result);
 }
 

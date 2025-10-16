@@ -1,116 +1,87 @@
 version: '3.8'
 
 services:
-  # ------ AUTH SERVICE & DATABASE ------
-  auth-service:
-    build: ./auth-service
-    container_name: todo-auth-service
+  mongodb:
+    image: mongo:7.0
+    container_name: microservices-mongodb
     restart: unless-stopped
-    env_file:
-      - ./auth-service/.env
-    depends_on:
-      auth-db:
-        condition: service_healthy # Chờ database khỏe mạnh
-      rabbitmq:
-        condition: service_healthy # Chờ RabbitMQ khỏe mạnh
-    networks:
-      - todo-network
-
-  auth-db:
-    image: mongo:latest
-    container_name: todo-auth-db
-    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
     volumes:
-      - mongodb_auth_data:/data/db
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
+      - mongodb_data:/data/db
     networks:
-      - todo-network
+      - microservices-network
 
-  # ------ USER SERVICE & DATABASE ------
-  user-service:
-    build: ./user-service
-    container_name: todo-user-service
-    restart: unless-stopped
-    env_file:
-      - ./user-service/.env
-    depends_on:
-      user-db:
-        condition: service_healthy # Chờ database khỏe mạnh
-      rabbitmq:
-        condition: service_healthy # Chờ RabbitMQ khỏe mạnh
-    networks:
-      - todo-network
-
-  user-db:
-    image: mongo:latest
-    container_name: todo-user-db
-    restart: unless-stopped
-    volumes:
-      - mongodb_user_data:/data/db
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-    networks:
-      - todo-network
-
-  # ------ TODO SERVICE & DATABASE ------
-  todo-service:
-    build: ./todo-service
-    container_name: todo-todo-service
-    restart: unless-stopped
-    env_file:
-      - ./todo-service/.env
-    depends_on:
-      todo-db:
-        condition: service_healthy # Chờ database khỏe mạnh
-      rabbitmq:
-        condition: service_healthy # Chờ RabbitMQ khỏe mạnh
-    networks:
-      - todo-network
-
-  todo-db:
-    image: mongo:latest
-    container_name: todo-todo-db
-    restart: unless-stopped
-    volumes:
-      - mongodb_todo_data:/data/db
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-    networks:
-      - todo-network
-
-  # ------ CÁC SERVICE CHUNG (Hạ tầng) ------
   rabbitmq:
-    image: rabbitmq:3-management
-    container_name: todo-rabbitmq
+    image: rabbitmq:3.12-management
+    container_name: microservices-rabbitmq
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
     ports:
       - "5672:5672"
       - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: password
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
     networks:
-      - todo-network
+      - microservices-network
+
+  auth-service:
+    build: ./auth-service
+    container_name: microservices-auth-service
+    restart: unless-stopped
+    ports:
+      - "50051:50051"
+    environment:
+      GRPC_PORT: 50051
+      JWT_SECRET: your-super-secret-jwt-key-for-development
+      MONGODB_URI: mongodb://admin:password@mongodb:27017/auth-service?authSource=admin
+      RABBITMQ_URL: amqp://admin:password@rabbitmq:5672
+    depends_on:
+      - mongodb
+      - rabbitmq
+    networks:
+      - microservices-network
+
+  user-service:
+    build: ./user-service
+    container_name: microservices-user-service
+    restart: unless-stopped
+    ports:
+      - "50052:50052"
+    environment:
+      GRPC_PORT: 50052
+      MONGODB_URI: mongodb://admin:password@mongodb:27017/user-service?authSource=admin
+      RABBITMQ_URL: amqp://admin:password@rabbitmq:5672
+    depends_on:
+      - mongodb
+      - rabbitmq
+    networks:
+      - microservices-network
+
+  todo-service:
+    build: ./todo-service
+    container_name: microservices-todo-service
+    restart: unless-stopped
+    ports:
+      - "50053:50053"
+    environment:
+      GRPC_PORT: 50053
+      MONGODB_URI: mongodb://admin:password@mongodb:27017/todo-service?authSource=admin
+      RABBITMQ_URL: amqp://admin:password@rabbitmq:5672
+    depends_on:
+      - mongodb
+      - rabbitmq
+    networks:
+      - microservices-network
 
   api-gateway:
     build: ./api-gateway
-    container_name: todo-api-gateway
+    container_name: microservices-api-gateway
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -124,13 +95,25 @@ services:
       - user-service
       - todo-service
     networks:
-      - todo-network
+      - microservices-network
+
+  frontend:
+    build: ./frontend
+    container_name: microservices-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    environment:
+      VITE_API_URL: /api
+    depends_on:
+      - api-gateway
+    networks:
+      - microservices-network
 
 volumes:
-  mongodb_auth_data:
-  mongodb_user_data:
-  mongodb_todo_data:
+  mongodb_data:
+  rabbitmq_data:
 
 networks:
-  todo-network:
+  microservices-network:
     driver: bridge

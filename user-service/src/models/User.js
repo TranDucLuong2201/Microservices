@@ -1,10 +1,10 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-    id: {
+    name: {
         type: String,
         required: true,
-        unique: true
+        trim: true
     },
     email: {
         type: String,
@@ -13,30 +13,50 @@ const userSchema = new mongoose.Schema({
         lowercase: true,
         trim: true
     },
-    name: {
+    avatar: {
         type: String,
-        required: true,
-        trim: true
+        default: null
     },
-    profile: {
-        bio: String,
-        avatar: String,
-        phone: String
+    bio: {
+        type: String,
+        default: '',
+        maxlength: 500
     },
-    createdAt: {
+    preferences: {
+        theme: {
+            type: String,
+            enum: ['light', 'dark'],
+            default: 'light'
+        },
+        notifications: {
+            type: Boolean,
+            default: true
+        }
+    },
+    isActive: {
+        type: Boolean,
+        default: true
+    },
+    lastLogin: {
         type: Date,
-        default: Date.now
-    },
-    updatedAt: {
-        type: Date,
-        default: Date.now
+        default: null
     }
+}, {
+    timestamps: true
 });
 
-// Update updatedAt before saving
-userSchema.pre('save', function(next) {
-    this.updatedAt = Date.now();
-    next();
+// Virtual for todo count (will be populated from todo service)
+userSchema.virtual('todoCount', {
+    ref: 'Todo',
+    localField: '_id',
+    foreignField: 'userId',
+    count: true
 });
+
+// Remove sensitive data from JSON output
+userSchema.methods.toJSON = function() {
+    const user = this.toObject();
+    return user;
+};
 
 module.exports = mongoose.model('User', userSchema);

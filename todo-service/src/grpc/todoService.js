@@ -9,26 +9,26 @@ const packageDefinition = protoLoader.loadSync(PROTO_PATH);
 const todoProto = grpc.loadPackageDefinition(packageDefinition).todo;
 
 async function CreateTodo(call, callback) {
-    const { userId, title, description } = call.request;
-    const result = await todoService.createTodo(userId, title, description);
+    const { userId, title, description, priority, dueDate, tags, category } = call.request;
+    const result = await todoService.createTodo(userId, title, description, priority, dueDate, tags, category);
     callback(null, result);
 }
 
-function GetTodos(call, callback) {
+async function GetTodos(call, callback) {
     const { userId } = call.request;
-    const result = todoService.getTodos(userId);
+    const result = await todoService.getTodos(userId);
     callback(null, result);
 }
 
-function GetTodo(call, callback) {
+async function GetTodo(call, callback) {
     const { todoId, userId } = call.request;
-    const result = todoService.getTodo(todoId, userId);
+    const result = await todoService.getTodo(todoId, userId);
     callback(null, result);
 }
 
-function UpdateTodo(call, callback) {
-    const { todoId, userId, title, description } = call.request;
-    const result = todoService.updateTodo(todoId, userId, title, description);
+async function UpdateTodo(call, callback) {
+    const { todoId, userId, title, description, priority, dueDate, tags, category } = call.request;
+    const result = await todoService.updateTodo(todoId, userId, title, description, priority, dueDate, tags, category);
     callback(null, result);
 }
 
@@ -38,9 +38,9 @@ async function DeleteTodo(call, callback) {
     callback(null, result);
 }
 
-function ToggleTodo(call, callback) {
+async function ToggleTodo(call, callback) {
     const { todoId, userId } = call.request;
-    const result = todoService.toggleTodo(todoId, userId);
+    const result = await todoService.toggleTodo(todoId, userId);
     callback(null, result);
 }
 

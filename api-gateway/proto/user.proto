@@ -15,7 +15,8 @@ message GetUserRequest {
 message UpdateUserRequest {
   string userId = 1;
   string name = 2;
-  string phone = 3;
+  string bio = 3;
+  UserPreferences preferences = 4;
 }
 
 message UserResponse {
@@ -28,11 +29,18 @@ message User {
   string id = 1;
   string email = 2;
   string name = 3;
-  string phone = 4;
+  string bio = 4;
+  UserPreferences preferences = 5;
+  string createdAt = 6;
 }
 
 message UserProfileResponse {
   bool success = 1;
   User user = 2;
   int32 todoCount = 3;
+}
+
+message UserPreferences {
+  string theme = 1;
+  bool notifications = 2;
 }
