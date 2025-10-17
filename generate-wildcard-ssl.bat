@@ -1,0 +1,60 @@
+@echo off
+echo 🔐 Generating Wildcard SSL Certificate for *.lunix.com
+echo =====================================================
+
+REM Check if OpenSSL is installed
+openssl version >nul 2>&1
+if errorlevel 1 (
+    echo ❌ OpenSSL not found. Please install OpenSSL first.
+    echo Download from: https://slproweb.com/products/Win32OpenSSL.html
+    pause
+    exit /b 1
+)
+
+REM Create SSL directory if it doesn't exist
+if not exist "ssl" mkdir ssl
+
+REM Generate private key
+echo 🔑 Generating private key...
+openssl genrsa -out ssl\wildcard.lunix.com.key 2048
+
+REM Generate certificate signing request (CSR)
+echo 📝 Generating CSR for *.lunix.com...
+openssl req -new -key ssl\wildcard.lunix.com.key -out ssl\wildcard.lunix.com.csr -subj "/C=VN/ST=Ho Chi Minh/L=Ho Chi Minh City/O=Lunix/OU=IT Department/CN=*.lunix.com"
+
+REM Generate self-signed certificate (for testing)
+echo 🔒 Generating self-signed certificate...
+openssl x509 -req -days 365 -in ssl\wildcard.lunix.com.csr -signkey ssl\wildcard.lunix.com.key -out ssl\wildcard.lunix.com.crt
+
+REM Create combined certificate file
+echo 📦 Creating combined certificate...
+copy ssl\wildcard.lunix.com.crt ssl\cert.pem >nul
+echo. >> ssl\cert.pem
+
+REM Copy private key
+copy ssl\wildcard.lunix.com.key ssl\key.pem >nul
+
+echo.
+echo ✅ Wildcard SSL files generated successfully!
+echo.
+echo 📁 Files created:
+echo   - ssl\wildcard.lunix.com.key (private key)
+echo   - ssl\wildcard.lunix.com.csr (certificate signing request)
+echo   - ssl\wildcard.lunix.com.crt (self-signed certificate)
+echo   - ssl\cert.pem (certificate for nginx)
+echo   - ssl\key.pem (private key for nginx)
+echo.
+echo 📋 Next steps:
+echo 1. Send ssl\wildcard.lunix.com.csr to your SSL provider
+echo 2. They will give you the signed certificate
+echo 3. Replace ssl\cert.pem with the signed certificate
+echo 4. Run: docker-compose -f docker-compose.ssl.yml up -d
+echo.
+echo 🌐 This certificate will work for:
+echo   - lunix.com
+echo   - *.lunix.com (any subdomain)
+echo   - todo.lunix.com
+echo   - api.lunix.com
+echo   - admin.lunix.com
+echo   - etc...
+pause

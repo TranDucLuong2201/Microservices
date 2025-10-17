@@ -1,0 +1,215 @@
+version: '3.8'
+
+services:
+  # MongoDB Services
+  mongodb-auth:
+    image: mongo:7.0
+    container_name: microservices-mongodb-auth
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: auth-service
+    volumes:
+      - mongodb_auth_data:/data/db
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  mongodb-user:
+    image: mongo:7.0
+    container_name: microservices-mongodb-user
+    restart: unless-stopped
+    ports:
+      - "27018:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: user-service
+    volumes:
+      - mongodb_user_data:/data/db
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  mongodb-todo:
+    image: mongo:7.0
+    container_name: microservices-mongodb-todo
+    restart: unless-stopped
+    ports:
+      - "27019:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: todo-service
+    volumes:
+      - mongodb_todo_data:/data/db
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # RabbitMQ
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: microservices-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: password
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - microservices-network
+
+  # Auth Service
+  auth-service:
+    build: ./auth-service
+    container_name: microservices-auth-service
+    restart: unless-stopped
+    ports:
+      - "50051:50051"
+    environment:
+      MONGODB_URI: mongodb://admin:password@mongodb-auth:27017/auth-service?authSource=admin
+      RABBITMQ_URL: amqp://admin:password@rabbitmq:5672
+      JWT_SECRET: your-super-secret-jwt-key-change-this-in-production
+    depends_on:
+      mongodb-auth:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:50051/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # User Service
+  user-service:
+    build: ./user-service
+    container_name: microservices-user-service
+    restart: unless-stopped
+    ports:
+      - "50052:50052"
+    environment:
+      MONGODB_URI: mongodb://admin:password@mongodb-user:27017/user-service?authSource=admin
+      RABBITMQ_URL: amqp://admin:password@rabbitmq:5672
+    depends_on:
+      mongodb-user:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:50052/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Todo Service
+  todo-service:
+    build: ./todo-service
+    container_name: microservices-todo-service
+    restart: unless-stopped
+    ports:
+      - "50053:50053"
+    environment:
+      MONGODB_URI: mongodb://admin:password@mongodb-todo:27017/todo-service?authSource=admin
+      RABBITMQ_URL: amqp://admin:password@rabbitmq:5672
+    depends_on:
+      mongodb-todo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:50053/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # API Gateway
+  api-gateway:
+    build: ./api-gateway
+    container_name: microservices-api-gateway
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      AUTH_SERVICE_URL: auth-service:50051
+      USER_SERVICE_URL: user-service:50052
+      TODO_SERVICE_URL: todo-service:50053
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      todo-service:
+        condition: service_healthy
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend
+  frontend:
+    build: ./frontend
+    container_name: microservices-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    networks:
+      - microservices-network
+
+  # Nginx SSL Proxy
+  nginx-ssl:
+    image: nginx:alpine
+    container_name: microservices-nginx-ssl
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx-ssl.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - frontend
+      - api-gateway
+    networks:
+      - microservices-network
+
+volumes:
+  mongodb_auth_data:
+  mongodb_user_data:
+  mongodb_todo_data:
+  rabbitmq_data:
+
+networks:
+  microservices-network:
+    driver: bridge
