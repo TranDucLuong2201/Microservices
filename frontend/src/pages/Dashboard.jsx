@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { useTodo } from '../contexts/TodoContext'
 import { useAuth } from '../contexts/AuthContext'
-import { Plus, CheckSquare, Clock, AlertCircle } from 'lucide-react'
+import { Plus, CheckSquare, Clock, AlertCircle, Edit3, Trash2 } from 'lucide-react'
 
 const Dashboard = () => {
-  const { todos, loading, error, stats, fetchTodos, createTodo, toggleTodo, deleteTodo } = useTodo()
+  const { todos, loading, error, stats, fetchTodos, createTodo, updateTodo, toggleTodo, deleteTodo } = useTodo()
   const { user } = useAuth()
   const [showForm, setShowForm] = useState(false)
+  const [editingTodo, setEditingTodo] = useState(null)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -26,10 +27,19 @@ const Dashboard = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    const result = await createTodo(formData)
-    if (result.success) {
-      setFormData({ title: '', description: '', priority: 'medium' })
-      setShowForm(false)
+    if (editingTodo) {
+      const result = await updateTodo(editingTodo.id, formData)
+      if (result.success) {
+        setEditingTodo(null)
+        setFormData({ title: '', description: '', priority: 'medium' })
+        setShowForm(false)
+      }
+    } else {
+      const result = await createTodo(formData)
+      if (result.success) {
+        setFormData({ title: '', description: '', priority: 'medium' })
+        setShowForm(false)
+      }
     }
   }
 
@@ -41,6 +51,22 @@ const Dashboard = () => {
     if (window.confirm('Are you sure you want to delete this todo?')) {
       await deleteTodo(id)
     }
+  }
+
+  const handleEdit = (todo) => {
+    setEditingTodo(todo)
+    setFormData({
+      title: todo.title,
+      description: todo.description,
+      priority: todo.priority
+    })
+    setShowForm(true)
+  }
+
+  const handleCancel = () => {
+    setEditingTodo(null)
+    setFormData({ title: '', description: '', priority: 'medium' })
+    setShowForm(false)
   }
 
   const getPriorityColor = (priority) => {
@@ -56,7 +82,7 @@ const Dashboard = () => {
     <div>
       <div className="dashboard-header">
         <div>
-          <h1 className="dashboard-title">Welcome back, {user?.name}!</h1>
+          <h1 className="dashboard-title">Welcome back, {user?.email || 'User'}!</h1>
           <p>Manage your tasks and stay organized</p>
         </div>
         <button 
@@ -88,9 +114,11 @@ const Dashboard = () => {
       {showForm && (
         <div className="todo-form">
           <div className="todo-form-header">
-            <h2 className="todo-form-title">Add New Todo</h2>
+            <h2 className="todo-form-title">
+              {editingTodo ? 'Edit Todo' : 'Add New Todo'}
+            </h2>
             <button 
-              onClick={() => setShowForm(false)}
+              onClick={handleCancel}
               className="btn btn-outline"
             >
               Cancel
@@ -140,11 +168,11 @@ const Dashboard = () => {
             <div style={{ display: 'flex', gap: '1rem' }}>
               <button type="submit" className="btn btn-primary">
                 <Plus size={16} />
-                Add Todo
+                {editingTodo ? 'Update Todo' : 'Add Todo'}
               </button>
               <button 
                 type="button" 
-                onClick={() => setShowForm(false)}
+                onClick={handleCancel}
                 className="btn btn-outline"
               >
                 Cancel
@@ -172,31 +200,45 @@ const Dashboard = () => {
           </div>
         ) : (
           todos.map(todo => (
-            <div key={todo._id} className={`todo-item ${todo.completed ? 'todo-completed' : ''}`}>
-              <input
-                type="checkbox"
-                className="todo-checkbox"
-                checked={todo.completed}
-                onChange={() => handleToggle(todo._id)}
-              />
+            <div key={todo.id} className={`todo-item ${todo.completed ? 'todo-completed' : ''}`}>
+              <div className="todo-checkbox-container">
+                <input
+                  type="checkbox"
+                  className="todo-checkbox"
+                  checked={todo.completed}
+                  onChange={() => handleToggle(todo.id)}
+                />
+              </div>
               
               <div className="todo-content">
                 <div className="todo-title">{todo.title}</div>
                 {todo.description && (
                   <div className="todo-description">{todo.description}</div>
                 )}
+                <div className="todo-meta">
+                  <span className={`todo-priority ${getPriorityColor(todo.priority)}`}>
+                    {todo.priority}
+                  </span>
+                  <span className="todo-date">
+                    {new Date(todo.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
               </div>
               
               <div className="todo-actions">
-                <span className={`todo-priority ${getPriorityColor(todo.priority)}`}>
-                  {todo.priority}
-                </span>
                 <button 
-                  onClick={() => handleDelete(todo._id)}
-                  className="btn btn-danger"
-                  style={{ padding: '0.25rem 0.5rem' }}
+                  onClick={() => handleEdit(todo)}
+                  className="btn btn-outline btn-sm"
+                  title="Edit todo"
                 >
-                  Delete
+                  <Edit3 size={14} />
+                </button>
+                <button 
+                  onClick={() => handleDelete(todo.id)}
+                  className="btn btn-danger btn-sm"
+                  title="Delete todo"
+                >
+                  <Trash2 size={14} />
                 </button>
               </div>
             </div>

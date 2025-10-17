@@ -30,8 +30,10 @@ export const AuthProvider = ({ children }) => {
       try {
         const token = localStorage.getItem('token')
         if (token) {
-          const response = await axios.post('/api/auth/verify-token')
-          setUser(response.data.user)
+          const response = await axios.post('/api/auth/verify-token', { token })
+          if (response.data.valid) {
+            setUser({ userId: response.data.userId, email: response.data.email })
+          }
         }
       } catch (error) {
         console.error('Auth check failed:', error)
@@ -49,15 +51,15 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null)
       const response = await axios.post('/api/auth/login', { email, password })
-      const { token, user } = response.data
+      const { token, userId, message } = response.data
       
       localStorage.setItem('token', token)
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-      setUser(user)
+      setUser({ userId, email })
       
       return { success: true }
     } catch (error) {
-      const message = error.response?.data?.message || 'Login failed'
+      const message = error.response?.data?.error || 'Login failed'
       setError(message)
       return { success: false, error: message }
     }
@@ -67,15 +69,15 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null)
       const response = await axios.post('/api/auth/register', { name, email, password })
-      const { token, user } = response.data
+      const { token, userId, message } = response.data
       
       localStorage.setItem('token', token)
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-      setUser(user)
+      setUser({ userId, email, name })
       
       return { success: true }
     } catch (error) {
-      const message = error.response?.data?.message || 'Registration failed'
+      const message = error.response?.data?.error || 'Registration failed'
       setError(message)
       return { success: false, error: message }
     }

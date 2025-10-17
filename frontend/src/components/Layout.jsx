@@ -1,75 +1,124 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { LogOut, User, CheckSquare, Home } from 'lucide-react'
+import { LogOut, User, CheckSquare, Home, Menu, X } from 'lucide-react'
 
 const Layout = ({ children }) => {
   const { user, logout, isAuthenticated } = useAuth()
   const location = useLocation()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const handleLogout = () => {
     logout()
   }
 
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen)
+  }
+
   return (
     <div className="app">
-      <header className="app-header">
-        <div className="container">
-          <div className="header-content">
-            <Link to="/" className="logo">
-              <CheckSquare size={24} />
-              TodoApp
-            </Link>
-            
-            {isAuthenticated && (
-              <nav className="nav-menu">
-                <Link 
-                  to="/dashboard" 
-                  className={`nav-link ${location.pathname === '/dashboard' ? 'active' : ''}`}
-                >
-                  <Home size={16} />
-                  Dashboard
-                </Link>
-                <Link 
-                  to="/profile" 
-                  className={`nav-link ${location.pathname === '/profile' ? 'active' : ''}`}
-                >
-                  <User size={16} />
-                  Profile
-                </Link>
-                
-                <div className="user-menu">
-                  <div className="user-info">
-                    <div className="avatar">
-                      {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                    </div>
-                    <span>{user?.name || 'User'}</span>
-                  </div>
-                  <button 
-                    onClick={handleLogout}
-                    className="btn btn-outline"
-                  >
-                    <LogOut size={16} />
-                    Logout
-                  </button>
+      {/* Sidebar */}
+      {isAuthenticated && (
+        <>
+          {/* Mobile overlay */}
+          {sidebarOpen && (
+            <div 
+              className="sidebar-overlay" 
+              onClick={() => setSidebarOpen(false)}
+            />
+          )}
+          
+          {/* Sidebar */}
+          <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
+            <div className="sidebar-header">
+              <Link to="/" className="sidebar-logo" onClick={() => setSidebarOpen(false)}>
+                <CheckSquare size={24} />
+                <span>TodoApp</span>
+              </Link>
+              <button 
+                className="sidebar-close"
+                onClick={() => setSidebarOpen(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <nav className="sidebar-nav">
+              <Link 
+                to="/dashboard" 
+                className={`sidebar-link ${location.pathname === '/dashboard' ? 'active' : ''}`}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <Home size={20} />
+                <span>Dashboard</span>
+              </Link>
+              <Link 
+                to="/profile" 
+                className={`sidebar-link ${location.pathname === '/profile' ? 'active' : ''}`}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <User size={20} />
+                <span>Profile</span>
+              </Link>
+            </nav>
+
+            <div className="sidebar-footer">
+              <div className="sidebar-user">
+                <div className="sidebar-avatar">
+                  {user?.email?.charAt(0)?.toUpperCase() || 'U'}
                 </div>
-              </nav>
-            )}
+                <div className="sidebar-user-info">
+                  <div className="sidebar-user-name">{user?.email || 'User'}</div>
+                  <div className="sidebar-user-role">User</div>
+                </div>
+              </div>
+              <button 
+                onClick={handleLogout}
+                className="sidebar-logout"
+              >
+                <LogOut size={18} />
+                <span>Logout</span>
+              </button>
+            </div>
+          </aside>
+        </>
+      )}
+
+      {/* Main content */}
+      <div className="main-content">
+        {/* Top bar */}
+        {isAuthenticated && (
+          <header className="top-bar">
+            <div className="top-bar-content">
+              <button 
+                className="sidebar-toggle"
+                onClick={toggleSidebar}
+              >
+                <Menu size={20} />
+              </button>
+              <div className="top-bar-title">
+                {location.pathname === '/dashboard' && 'Dashboard'}
+                {location.pathname === '/profile' && 'Profile'}
+              </div>
+            </div>
+          </header>
+        )}
+
+        {/* Page content */}
+        <main className="page-content">
+          <div className="container">
+            {children}
           </div>
-        </div>
-      </header>
+        </main>
 
-      <main className="app-main">
-        <div className="container">
-          {children}
-        </div>
-      </main>
-
-      <footer className="app-footer">
-        <div className="container">
-          <p>&copy; 2024 TodoApp. Built with React & Microservices.</p>
-        </div>
-      </footer>
+        {/* Footer */}
+        <footer className="app-footer">
+          <div className="container">
+            <p>&copy; 2024 TodoApp. Built with React & Microservices.</p>
+          </div>
+        </footer>
+      </div>
     </div>
   )
 }

@@ -26,11 +26,12 @@ export const TodoProvider = ({ children }) => {
       setLoading(true)
       setError(null)
       const response = await axios.get('/api/todos')
-      setTodos(response.data)
+      const todos = response.data.todos || []
+      setTodos(todos)
       
       // Calculate stats
-      const total = response.data.length
-      const completed = response.data.filter(todo => todo.completed).length
+      const total = todos.length
+      const completed = todos.filter(todo => todo.completed).length
       const pending = total - completed
       
       setStats({ total, completed, pending })
@@ -46,7 +47,8 @@ export const TodoProvider = ({ children }) => {
     try {
       setError(null)
       const response = await axios.post('/api/todos', todoData)
-      setTodos(prev => [response.data, ...prev])
+      const newTodo = response.data.todo
+      setTodos(prev => [newTodo, ...prev])
       
       // Update stats
       setStats(prev => ({
@@ -67,13 +69,14 @@ export const TodoProvider = ({ children }) => {
     try {
       setError(null)
       const response = await axios.put(`/api/todos/${id}`, updates)
+      const updatedTodo = response.data.todo
       setTodos(prev => prev.map(todo => 
-        todo._id === id ? response.data : todo
+        todo.id === id ? updatedTodo : todo
       ))
       
       // Update stats if completion status changed
       if (updates.hasOwnProperty('completed')) {
-        const todo = todos.find(t => t._id === id)
+        const todo = todos.find(t => t.id === id)
         if (todo && todo.completed !== updates.completed) {
           setStats(prev => ({
             total: prev.total,
@@ -96,8 +99,8 @@ export const TodoProvider = ({ children }) => {
       setError(null)
       await axios.delete(`/api/todos/${id}`)
       
-      const todo = todos.find(t => t._id === id)
-      setTodos(prev => prev.filter(todo => todo._id !== id))
+      const todo = todos.find(t => t.id === id)
+      setTodos(prev => prev.filter(todo => todo.id !== id))
       
       // Update stats
       setStats(prev => ({
@@ -115,11 +118,30 @@ export const TodoProvider = ({ children }) => {
   }
 
   const toggleTodo = async (id) => {
-    const todo = todos.find(t => t._id === id)
-    if (todo) {
-      return await updateTodo(id, { completed: !todo.completed })
+    try {
+      setError(null)
+      const response = await axios.patch(`/api/todos/${id}/toggle`)
+      const updatedTodo = response.data.todo
+      setTodos(prev => prev.map(todo => 
+        todo.id === id ? updatedTodo : todo
+      ))
+      
+      // Update stats
+      const todo = todos.find(t => t.id === id)
+      if (todo) {
+        setStats(prev => ({
+          total: prev.total,
+          completed: prev.completed + (updatedTodo.completed ? 1 : -1),
+          pending: prev.pending + (updatedTodo.completed ? -1 : 1)
+        }))
+      }
+      
+      return { success: true }
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to toggle todo'
+      setError(message)
+      return { success: false, error: message }
     }
-    return { success: false, error: 'Todo not found' }
   }
 
   const value = {

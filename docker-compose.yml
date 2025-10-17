@@ -16,6 +16,12 @@ services:
       - mongodb_auth_data:/data/db
     networks:
       - microservices-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   # User Service Database
   mongodb-user:
@@ -32,6 +38,12 @@ services:
       - mongodb_user_data:/data/db
     networks:
       - microservices-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   # Todo Service Database
   mongodb-todo:
@@ -48,6 +60,12 @@ services:
       - mongodb_todo_data:/data/db
     networks:
       - microservices-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   rabbitmq:
     image: rabbitmq:3.12-management
@@ -76,8 +94,10 @@ services:
       MONGODB_URI: mongodb://admin:password@mongodb-auth:27017/auth-service?authSource=admin
       RABBITMQ_URL: amqp://admin:password@rabbitmq:5672
     depends_on:
-      - mongodb-auth
-      - rabbitmq
+      mongodb-auth:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
     networks:
       - microservices-network
 
@@ -92,8 +112,10 @@ services:
       MONGODB_URI: mongodb://admin:password@mongodb-user:27017/user-service?authSource=admin
       RABBITMQ_URL: amqp://admin:password@rabbitmq:5672
     depends_on:
-      - mongodb-user
-      - rabbitmq
+      mongodb-user:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
     networks:
       - microservices-network
 
@@ -108,8 +130,10 @@ services:
       MONGODB_URI: mongodb://admin:password@mongodb-todo:27017/todo-service?authSource=admin
       RABBITMQ_URL: amqp://admin:password@rabbitmq:5672
     depends_on:
-      - mongodb-todo
-      - rabbitmq
+      mongodb-todo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
     networks:
       - microservices-network
 

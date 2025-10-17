@@ -9,7 +9,7 @@ const Profile = () => {
   const { stats } = useTodo()
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState({
-    name: user?.name || '',
+    name: user?.email || '',
     bio: user?.bio || ''
   })
   const [loading, setLoading] = useState(false)
@@ -19,7 +19,7 @@ const Profile = () => {
   useEffect(() => {
     if (user) {
       setFormData({
-        name: user.name || '',
+        name: user.email || '',
         bio: user.bio || ''
       })
     }
@@ -39,7 +39,7 @@ const Profile = () => {
     setSuccess('')
 
     try {
-      const response = await axios.put(`/api/users/${user._id}`, formData)
+      const response = await axios.put(`/api/users/${user.id}`, formData)
       updateUser(response.data)
       setSuccess('Profile updated successfully!')
       setIsEditing(false)
@@ -63,10 +63,10 @@ const Profile = () => {
     <div>
       <div className="profile-header">
         <div className="profile-avatar">
-          {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+          {user?.email?.charAt(0)?.toUpperCase() || 'U'}
         </div>
         <div className="profile-info">
-          <h1>{user?.name || 'User'}</h1>
+          <h1>{user?.email || 'User'}</h1>
           <p>{user?.email}</p>
         </div>
         <button 
@@ -165,7 +165,7 @@ const Profile = () => {
         ) : (
           <div>
             <div style={{ marginBottom: '1rem' }}>
-              <strong>Name:</strong> {user?.name || 'Not provided'}
+              <strong>Name:</strong> {user?.email || 'Not provided'}
             </div>
             <div style={{ marginBottom: '1rem' }}>
               <strong>Email:</strong> {user?.email}
